@@ -1,0 +1,50 @@
+body {
+    margin: 0;
+    padding: 0;
+}
+
+.bot-container {
+    min-width: 600px;
+    max-width: 800px;
+    width: 100%;
+    height: 100vh;
+    margin: 0 auto;
+    display: flex;
+    align-items: flex-start;
+    justify-content: flex-start;
+}
+
+.bot-window {
+    width: 70%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.bot-sidebar {
+    width: 30%;
+    height: 100%;
+}
+
+.bot-window-top {
+    width: 100%;
+    height: 10%;
+}
+
+.bot-window-messages {
+    width: 100%;
+    height: 85%;
+}
+
+.bot-form {
+    width: 100%;
+    height: 5%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.bot-form-input {
+    width: 80%;
+    height: 100%;
+}
