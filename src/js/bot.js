@@ -8,26 +8,38 @@ export default class Bot {
     }
     this.form = this.element.querySelector('.bot-form');
     this.ws = new WebSocket(url);
+    this.feed = this.element.querySelector('.bot-window-messages');
 
-    this.ws.addEventListener('message', this.messageServer);
-    this.ws.addEventListener('open', this.openServer);
+    this.ws.addEventListener('message', (e) => {
+      this.messageFromServer(e, this);
+    });
+    this.ws.addEventListener('open', () => {
+      this.openServer(this);
+    });
     this.ws.addEventListener('close', this.serverLost);
     this.form.addEventListener('submit', (e) => {
-      this.postMessage(e, this);
+      this.onSubmit(e, this);
     });
   }
 
-  init(url) {
-
+  openServer(app) {
+    app.sentMessage(JSON.stringify({ comand: 'sentInitailData' }));
   }
 
-  openServer(e) {
-
+  sentMessage(data) {
+    this.ws.send(data);
   }
 
-  messageServer(e) {
-    console.log(e.data);
-    console.log('general kenobi');
+  messageFromServer(e, app) {
+    const obj = JSON.parse(e.data);
+    if (obj.comand === 'sentInitailData' && obj.fullfilled) {
+      obj.data.forEach((el) => {
+        app.feed.insertAdjacentElement('beforeend', app.renderMessage(el));
+      });
+    }
+    if (obj.comand === 'newMessage' && obj.fullfilled) {
+      app.feed.insertAdjacentElement('beforeend', app.renderMessage(obj.data));
+    }
   }
 
   serverLost(e) {
@@ -35,14 +47,47 @@ export default class Bot {
     console.log('лавочка закрыта');
   }
 
-  postMessage(e, app) {
+  onSubmit(e, app) {
     e.preventDefault();
-    app.ws.send(app.getFormData());
+    const message = {
+      comand: 'newMessage',
+      text: app.getFormData(),
+    };
+    app.ws.send(JSON.stringify(message));
   }
 
   getFormData() {
     const result = this.form.querySelector('.bot-form-input').value;
     this.form.querySelector('.bot-form-input').value = '';
-    return JSON.stringify(result);
+    return result;
+  }
+
+  renderMessage(obj) {
+    const container = document.createElement('div');
+    container.dataset.id = obj.id;
+    container.dataset.index = obj.index;
+    container.classList.add('message-container');
+    container.classList.add('border'); // граница
+    const timestamp = document.createElement('div');
+    timestamp.classList.add('timestamp');
+    const time = document.createElement('span');
+    time.textContent = obj.timestamp;
+    timestamp.insertAdjacentElement('afterbegin', time);
+    container.insertAdjacentElement('afterbegin', timestamp);
+    const message = document.createElement('div');
+    const text = document.createElement('span');
+    message.insertAdjacentElement('afterbegin', text);
+    container.insertAdjacentElement('beforeend', message);
+    const reg = new RegExp(/(http|https|ftp|ftps)\:\/\/[a-zA-Z0-9\-\.]+\.[a-zA-Z]{2,3}(\/\S*)?/);
+    if (reg.test(obj.text)) {
+        
+      const link = obj.text.match(reg)[0];
+      console.log(obj.text.split(link))
+      const html = `<a href='${link}'>${link}</a>`;
+      console.log(obj.text.replace(reg, `<a href='${link}'>${link}</a>`));
+      const res = obj.text.replace(reg, `<a href='${link}'>${link}</a>`);
+      text.textContent = res;
+    }
+    return container;
   }
 }
