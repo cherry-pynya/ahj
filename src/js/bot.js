@@ -1,3 +1,4 @@
+/* eslint-disable consistent-return */
 /* eslint-disable class-methods-use-this */
 export default class Bot {
   constructor(elem, url) {
@@ -7,6 +8,7 @@ export default class Bot {
       this.element = elem;
     }
     this.form = this.element.querySelector('.bot-form');
+    this.fileInput = this.form.querySelector('.file-input');
     this.ws = new WebSocket(url);
     this.feed = this.element.querySelector('.bot-window-messages');
 
@@ -14,16 +16,32 @@ export default class Bot {
       this.messageFromServer(e, this);
     });
     this.ws.addEventListener('open', () => {
-      this.openServer(this);
+      this.openServer();
     });
     this.ws.addEventListener('close', this.serverLost);
     this.form.addEventListener('submit', (e) => {
-      this.onSubmit(e, this);
+      this.onSubmit(e);
     });
+    this.fileInput.addEventListener('change', (e) => {
+      this.sendFile(e);
+    })
+
+    this.onSubmit = this.onSubmit.bind(this);
+    this.openServer = this.openServer.bind(this);
+    this.sendFile = this.sendFile.bind(this);
   }
 
-  openServer(app) {
-    app.sentMessage(JSON.stringify({ comand: 'sentInitailData' }));
+  sendFile(e) {
+    console.log(e);
+    console.log(this.fileInput.files);
+    this.sentMessage(JSON.stringify({
+      comand: 'file',
+      data: this.fileInput.files,
+    }));
+  }
+
+  openServer() {
+    this.sentMessage(JSON.stringify({ comand: 'sentInitailData' }));
   }
 
   sentMessage(data) {
@@ -47,19 +65,15 @@ export default class Bot {
     console.log('лавочка закрыта');
   }
 
-  onSubmit(e, app) {
+  onSubmit(e) {
     e.preventDefault();
+    if (this.form.querySelector('.bot-form-input').value === '') return false;
     const message = {
       comand: 'newMessage',
-      text: app.getFormData(),
+      text: this.form.querySelector('.bot-form-input').value,
     };
-    app.ws.send(JSON.stringify(message));
-  }
-
-  getFormData() {
-    const result = this.form.querySelector('.bot-form-input').value;
     this.form.querySelector('.bot-form-input').value = '';
-    return result;
+    this.ws.send(JSON.stringify(message));
   }
 
   renderMessage(obj) {
@@ -80,13 +94,11 @@ export default class Bot {
     container.insertAdjacentElement('beforeend', message);
     const reg = new RegExp(/(http|https|ftp|ftps)\:\/\/[a-zA-Z0-9\-\.]+\.[a-zA-Z]{2,3}(\/\S*)?/);
     if (reg.test(obj.text)) {
-        
       const link = obj.text.match(reg)[0];
-      console.log(obj.text.split(link))
-      const html = `<a href='${link}'>${link}</a>`;
-      console.log(obj.text.replace(reg, `<a href='${link}'>${link}</a>`));
-      const res = obj.text.replace(reg, `<a href='${link}'>${link}</a>`);
-      text.textContent = res;
+      const res = obj.text.replace(reg, `</span><a href='${link}'>${link}</a><span>`);
+      text.innerHTML = res;
+    } else {
+      text.textContent = obj.text;
     }
     return container;
   }
