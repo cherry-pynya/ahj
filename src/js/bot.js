@@ -13,7 +13,7 @@ export default class Bot {
     this.feed = this.element.querySelector('.bot-window-messages');
 
     this.ws.addEventListener('message', (e) => {
-      this.messageFromServer(e, this);
+      this.messageFromServer(e);
     });
     this.ws.addEventListener('open', () => {
       this.openServer();
@@ -24,39 +24,38 @@ export default class Bot {
     });
     this.fileInput.addEventListener('change', (e) => {
       this.sendFile(e);
-    })
+    });
 
     this.onSubmit = this.onSubmit.bind(this);
     this.openServer = this.openServer.bind(this);
     this.sendFile = this.sendFile.bind(this);
+    this.messageFromServer = this.messageFromServer.bind(this);
   }
 
-  sendFile(e) {
-    console.log(e);
-    console.log(this.fileInput.files);
-    this.sentMessage(JSON.stringify({
-      comand: 'file',
-      data: this.fileInput.files,
-    }));
+  sendFile() {
+    const file = this.fileInput.files[0];
+    const formData = new FormData();
+    formData.append('file', file);
+    this.ws.send(JSON.stringify(formData));
   }
 
   openServer() {
-    this.sentMessage(JSON.stringify({ comand: 'sentInitailData' }));
+    this.sentMessage(JSON.stringify({ comand: 'lazyLoad' }));
   }
 
   sentMessage(data) {
     this.ws.send(data);
   }
 
-  messageFromServer(e, app) {
+  messageFromServer(e) {
     const obj = JSON.parse(e.data);
-    if (obj.comand === 'sentInitailData' && obj.fullfilled) {
+    if (obj.comand === 'lazyLoad') {
       obj.data.forEach((el) => {
-        app.feed.insertAdjacentElement('beforeend', app.renderMessage(el));
+        this.feed.insertAdjacentElement('beforeend', this.renderMessage(el));
       });
     }
-    if (obj.comand === 'newMessage' && obj.fullfilled) {
-      app.feed.insertAdjacentElement('beforeend', app.renderMessage(obj.data));
+    if (obj.comand === 'newMessage') {
+      this.feed.insertAdjacentElement('beforeend', this.renderMessage(obj.data));
     }
   }
 
