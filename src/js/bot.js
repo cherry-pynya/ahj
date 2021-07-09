@@ -25,11 +25,17 @@ export default class Bot {
     this.fileInput.addEventListener('change', (e) => {
       this.sendFile(e);
     });
+    this.feed.addEventListener('wheel', (e) => {
+      if (e.deltaY < 0 && window.scrollY === 0) {
+        this.sentMessage(JSON.stringify({ comand: 'lazyLoad' }));
+      }
+    });
 
     this.onSubmit = this.onSubmit.bind(this);
     this.openServer = this.openServer.bind(this);
     this.sendFile = this.sendFile.bind(this);
     this.messageFromServer = this.messageFromServer.bind(this);
+    this.sentMessage = this.sentMessage.bind(this);
   }
 
   sendFile() {
@@ -55,7 +61,7 @@ export default class Bot {
       });
     }
     if (obj.comand === 'newMessage') {
-      this.feed.insertAdjacentElement('beforeend', this.renderMessage(obj.data));
+      this.feed.insertAdjacentElement('afterbegin', this.renderMessage(obj.data));
     }
   }
 
