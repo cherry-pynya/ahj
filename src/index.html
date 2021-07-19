@@ -1,26 +1,32 @@
 <!DOCTYPE html>
 <html lang="rus">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="X-UA-Compatible" content="ie=edge">
-  <title>ChaosBot</title>
-</head>
-<body>
-  <div class="bot-container border">
-    <div class="bot-window">
-      <div class="bot-window-top border"></div>
-      <div class="bot-window-messages border">
-        
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>ChaosBot</title>
+  </head>
+  <body>
+    <div class="bot-container border">
+      <div class="bot-window">
+        <div class="bot-window-top border"></div>
+        <div class="bot-window-messages border"></div>
+        <form class="bot-form">
+          <div class="file-input-container">
+            <input
+              type="file"
+              class="file-input"
+              accept="audio/*, video/*, application/*, image/*"
+            />
+            <div class="file-input-icon"></div>
+          </div>
+          <input class="bot-form-input" />
+          <button type="button" class="form-btn geo">Geo</button>
+          <button type="button" class="form-btn">Voice</button>
+          <button type="button" class="form-btn">Video</button>
+        </form>
       </div>
-      <form class="bot-form">
-        <input type="file" class="file-input">
-        <input class="bot-form-input">
-        <button type="button" class="form-btn">Voice</button>
-        <button type="button" class="form-btn">Video</button>
-      </form>
+      <div class="bot-sidebar border"></div>
     </div>
-    <div class="bot-sidebar border"></div>
-  </div>
-</body>
+  </body>
 </html>

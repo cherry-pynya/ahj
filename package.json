@@ -30,7 +30,7 @@
     "@types/puppeteer": "^5.4.3",
     "babel-jest": "^27.0.2",
     "babel-loader": "^8.2.2",
-    "css-loader": "^5.0.1",
+    "css-loader": "^5.2.6",
     "eslint": "^7.17.0",
     "eslint-config-airbnb-base": "^14.2.1",
     "eslint-plugin-import": "^2.22.1",
@@ -51,11 +51,16 @@
   },
   "dependencies": {
     "core-js": "^3.13.1",
+    "extract-loader": "^5.1.0",
     "file-loader": "^6.2.0",
+    "file-saver": "^2.0.5",
+    "font-awesome": "^4.7.0",
+    "handlebars-loader": "^1.7.1",
     "moment": "^2.29.1",
     "node-polyfill-webpack-plugin": "^1.1.4",
     "puppeteer-core": "^10.0.0",
     "telegraf": "^4.4.0",
+    "to-string-loader": "^1.1.6",
     "uuid": "^8.3.2"
   },
   "jest": {

@@ -1,5 +1,10 @@
 /* eslint-disable consistent-return */
 /* eslint-disable class-methods-use-this */
+import { Array } from 'core-js';
+import { saveAs } from 'file-saver';
+import post from './post';
+import getLocation, { validate } from './location';
+
 export default class Bot {
   constructor(elem, url) {
     if (typeof (elem) === 'string') {
@@ -9,8 +14,11 @@ export default class Bot {
     }
     this.form = this.element.querySelector('.bot-form');
     this.fileInput = this.form.querySelector('.file-input');
-    this.ws = new WebSocket(url);
+    this.fileInputOverlap = this.element.querySelector('.file-input-icon');
+    this.url = url;
+    this.ws = new WebSocket(this.url);
     this.feed = this.element.querySelector('.bot-window-messages');
+    this.geoBtn = this.element.querySelector('.geo');
 
     this.ws.addEventListener('message', (e) => {
       this.messageFromServer(e);
@@ -25,10 +33,22 @@ export default class Bot {
     this.fileInput.addEventListener('change', (e) => {
       this.sendFile(e);
     });
+    this.fileInputOverlap.addEventListener('click', () => {
+      this.fileInput.dispatchEvent(new MouseEvent('click'));
+    });
+    this.feed.addEventListener('dragover', (e) => {
+      e.preventDefault();
+    });
+    this.feed.addEventListener('drop', (e) => {
+      this.dropFiles(e);
+    });
     this.feed.addEventListener('wheel', (e) => {
       if (e.deltaY < 0 && window.scrollY === 0) {
         this.sentMessage(JSON.stringify({ comand: 'lazyLoad' }));
       }
+    });
+    this.geoBtn.addEventListener('click', () => {
+      this.postLocation();
     });
 
     this.onSubmit = this.onSubmit.bind(this);
@@ -36,13 +56,20 @@ export default class Bot {
     this.sendFile = this.sendFile.bind(this);
     this.messageFromServer = this.messageFromServer.bind(this);
     this.sentMessage = this.sentMessage.bind(this);
+    this.dropFiles = this.dropFiles.bind(this);
+    this.postLocation = this.postLocation.bind(this);
+  }
+
+  dropFiles(e) {
+    e.preventDefault();
+    const files = Array.from(e.dataTransfer.files);
+    files.forEach((el) => {
+      post(el, this.url);
+    });
   }
 
   sendFile() {
-    const file = this.fileInput.files[0];
-    const formData = new FormData();
-    formData.append('file', file);
-    this.ws.send(JSON.stringify(formData));
+    post(this.fileInput.files[0], this.url);
   }
 
   openServer() {
@@ -61,6 +88,9 @@ export default class Bot {
       });
     }
     if (obj.comand === 'newMessage') {
+      this.feed.insertAdjacentElement('afterbegin', this.renderMessage(obj.data));
+    }
+    if (obj.comand === 'geo') {
       this.feed.insertAdjacentElement('afterbegin', this.renderMessage(obj.data));
     }
   }
@@ -94,10 +124,24 @@ export default class Bot {
     timestamp.insertAdjacentElement('afterbegin', time);
     container.insertAdjacentElement('afterbegin', timestamp);
     const message = document.createElement('div');
+    if (obj.type === 'file') {
+      const link = document.createElement('a');
+      const href = this.url.replace('ws', 'http');
+      link.href = `${href}/${obj.text}`;
+      link.textContent = obj.text;
+      const div = document.createElement('div');
+      div.insertAdjacentElement('afterbegin', link);
+      container.insertAdjacentElement('beforeend', div);
+      link.addEventListener('click', (event) => {
+        event.preventDefault();
+        saveAs(`${href}/${obj.text}`, obj.text);
+      });
+      return container;
+    }
     const text = document.createElement('span');
     message.insertAdjacentElement('afterbegin', text);
     container.insertAdjacentElement('beforeend', message);
-    const reg = new RegExp(/(http|https|ftp|ftps)\:\/\/[a-zA-Z0-9\-\.]+\.[a-zA-Z]{2,3}(\/\S*)?/);
+    const reg = new RegExp(/(http|https|ftp|ftps):\/\/[a-zA-Z0-9\-\\.]+\.[a-zA-Z]{2,3}(\/\S*)?/);
     if (reg.test(obj.text)) {
       const link = obj.text.match(reg)[0];
       const res = obj.text.replace(reg, `</span><a href='${link}'>${link}</a><span>`);
@@ -106,5 +150,50 @@ export default class Bot {
       text.textContent = obj.text;
     }
     return container;
+  }
+
+  postLocation() {
+    getLocation()
+      .then((resolve) => {
+        console.log(this);
+        this.sentMessage(JSON.stringify({
+          comand: 'geo',
+          text: resolve,
+        }));
+      }, (reject) => {
+        this.createTopInput('Упс! Геолокация отключена или не поддерживается данным браузером. Пожалуйста, введите координаты в формате: Х.ХХХ, Х.ХХХ!');
+        const form = document.querySelector('.bot-window-top-form');
+        form.addEventListener('submit', (e) => {
+          e.preventDefault();
+          const coords = form.querySelector('.bot-window-top-form-input').value;
+          if (validate(coords)) {
+            const text = coords.replace(',', ' - ');
+            this.sentMessage(JSON.stringify({
+              comand: 'geo',
+              text: `[${text}]`,
+            }));
+            form.remove();
+            this.element.querySelector('.bot-window-messages').style.height = '85%';
+          } else {
+            form.querySelector('.bot-window-top-form-text').textContent = 'Упс! Неыерный формат координат. Пожалуйста, введите координаты в формате: Х.ХХХ, Х.ХХХ!';
+            form.querySelector('.bot-window-top-form-input').value = '';
+          }
+        });
+      });
+  }
+
+  createTopInput(str) {
+    this.element.querySelector('.bot-window-messages').style.height = '75%';
+    const form = document.createElement('form');
+    form.classList.add('bot-window-top-form');
+    form.classList.add('border');
+    this.element.querySelector('.bot-window-top').insertAdjacentElement('afterend', form);
+    const text = document.createElement('span');
+    text.textContent = str;
+    text.classList.add('bot-window-top-form-text');
+    form.insertAdjacentElement('afterbegin', text);
+    const input = document.createElement('input');
+    input.classList.add('bot-window-top-form-input');
+    form.insertAdjacentElement('beforeend', input);
   }
 }
