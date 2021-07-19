@@ -19,6 +19,7 @@ export default class Bot {
     this.ws = new WebSocket(this.url);
     this.feed = this.element.querySelector('.bot-window-messages');
     this.geoBtn = this.element.querySelector('.geo');
+    this.finder = this.element.querySelector('.lens');
 
     this.ws.addEventListener('message', (e) => {
       this.messageFromServer(e);
@@ -50,6 +51,9 @@ export default class Bot {
     this.geoBtn.addEventListener('click', () => {
       this.postLocation();
     });
+    this.finder.addEventListener('click', (e) => {
+      this.findMessage(e);
+    });
 
     this.onSubmit = this.onSubmit.bind(this);
     this.openServer = this.openServer.bind(this);
@@ -58,6 +62,8 @@ export default class Bot {
     this.sentMessage = this.sentMessage.bind(this);
     this.dropFiles = this.dropFiles.bind(this);
     this.postLocation = this.postLocation.bind(this);
+    this.findMessage = this.findMessage.bind(this);
+    this.handleFormMissClick = this.handleFormMissClick.bind(this);
   }
 
   dropFiles(e) {
@@ -92,6 +98,11 @@ export default class Bot {
     }
     if (obj.comand === 'geo') {
       this.feed.insertAdjacentElement('afterbegin', this.renderMessage(obj.data));
+    }
+    if (obj.comand === 'findMessage') {
+      obj.data.forEach((el) => {
+        this.feed.insertAdjacentElement('afterbegin', this.renderMessage(el));
+      });
     }
   }
 
@@ -155,13 +166,13 @@ export default class Bot {
   postLocation() {
     getLocation()
       .then((resolve) => {
-        console.log(this);
         this.sentMessage(JSON.stringify({
           comand: 'geo',
           text: resolve,
         }));
       }, (reject) => {
         this.createTopInput('Упс! Геолокация отключена или не поддерживается данным браузером. Пожалуйста, введите координаты в формате: Х.ХХХ, Х.ХХХ!');
+        this.element.addEventListener('click', this.handleFormMissClick);
         const form = document.querySelector('.bot-window-top-form');
         form.addEventListener('submit', (e) => {
           e.preventDefault();
@@ -172,20 +183,24 @@ export default class Bot {
               comand: 'geo',
               text: `[${text}]`,
             }));
-            form.remove();
-            this.element.querySelector('.bot-window-messages').style.height = '85%';
+            this.removeTopForm();
           } else {
             form.querySelector('.bot-window-top-form-text').textContent = 'Упс! Неыерный формат координат. Пожалуйста, введите координаты в формате: Х.ХХХ, Х.ХХХ!';
             form.querySelector('.bot-window-top-form-input').value = '';
           }
+          return reject;
         });
       });
   }
 
-  createTopInput(str) {
+  createTopInput(str, type = 'geo') {
+    if (this.element.querySelector('.bot-window-top-form') !== null) {
+      this.removeTopForm();
+    }
     this.element.querySelector('.bot-window-messages').style.height = '75%';
     const form = document.createElement('form');
     form.classList.add('bot-window-top-form');
+    form.classList.add(type);
     form.classList.add('border');
     this.element.querySelector('.bot-window-top').insertAdjacentElement('afterend', form);
     const text = document.createElement('span');
@@ -195,5 +210,40 @@ export default class Bot {
     const input = document.createElement('input');
     input.classList.add('bot-window-top-form-input');
     form.insertAdjacentElement('beforeend', input);
+  }
+
+  removeTopForm() {
+    const form = this.element.querySelector('.bot-window-top-form');
+    if (form.classList.contains('search')) {
+      this.sentMessage(JSON.stringify({
+        comand: 'refreshFeed',
+      }));
+    }
+    form.remove();
+    this.element.querySelector('.bot-window-messages').style.height = '85%';
+    this.element.removeEventListener('click', this.handleFormMissClick);
+  }
+
+  handleFormMissClick(e) {
+    if (e.target === this.finder) {
+      return false;
+    }
+    if (e.target.closest('.bot-window-top-form') === null) {
+      this.removeTopForm();
+    }
+  }
+
+  findMessage(e) {
+    e.preventDefault();
+    this.createTopInput('Поиск по сообщениям...', 'search');
+    this.element.addEventListener('click', this.handleFormMissClick);
+    const input = document.querySelector('.bot-window-top-form').querySelector('.bot-window-top-form-input');
+    input.addEventListener('input', () => {
+      this.feed.innerHTML = '';
+      this.sentMessage(JSON.stringify({
+        comand: 'findMessage',
+        text: input.value,
+      }));
+    });
   }
 }
