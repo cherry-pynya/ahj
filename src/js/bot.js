@@ -1,3 +1,4 @@
+/* eslint-disable guard-for-in */
 /* eslint-disable consistent-return */
 /* eslint-disable class-methods-use-this */
 import { Array } from 'core-js';
@@ -20,6 +21,7 @@ export default class Bot {
     this.feed = this.element.querySelector('.bot-window-messages');
     this.geoBtn = this.element.querySelector('.geo');
     this.finder = this.element.querySelector('.lens');
+    this.categories = this.element.querySelector('.shared-media-list');
 
     this.ws.addEventListener('message', (e) => {
       this.messageFromServer(e);
@@ -54,6 +56,9 @@ export default class Bot {
     this.finder.addEventListener('click', (e) => {
       this.findMessage(e);
     });
+    this.categories.addEventListener('click', (e) => {
+      this.choseCategory(e);
+    });
 
     this.onSubmit = this.onSubmit.bind(this);
     this.openServer = this.openServer.bind(this);
@@ -64,6 +69,7 @@ export default class Bot {
     this.postLocation = this.postLocation.bind(this);
     this.findMessage = this.findMessage.bind(this);
     this.handleFormMissClick = this.handleFormMissClick.bind(this);
+    this.choseCategory = this.choseCategory.bind(this);
   }
 
   dropFiles(e) {
@@ -104,21 +110,37 @@ export default class Bot {
         this.feed.insertAdjacentElement('afterbegin', this.renderMessage(el));
       });
     }
+    if (obj.comand === 'categories') {
+      this.renderCategories(obj.data);
+    }
+    if (obj.comand === 'showCategory') {
+      obj.data.forEach((el) => {
+        this.feed.insertAdjacentElement('afterbegin', this.renderMessage(el));
+      });
+    }
   }
 
   serverLost(e) {
-    console.log(e);
-    console.log('лавочка закрыта');
+    console.log(`Связь с сервером потеряна: ${e}`);
   }
 
   onSubmit(e) {
     e.preventDefault();
-    if (this.form.querySelector('.bot-form-input').value === '') return false;
-    const message = {
-      comand: 'newMessage',
-      text: this.form.querySelector('.bot-form-input').value,
-    };
+    const { value } = this.form.querySelector('.bot-form-input');
     this.form.querySelector('.bot-form-input').value = '';
+    if (value === '') return false;
+    let message;
+    if (value[0] === '@') {
+      message = {
+        comand: 'botComand',
+        request: value,
+      };
+    } else {
+      message = {
+        comand: 'newMessage',
+        text: value,
+      };
+    }
     this.ws.send(JSON.stringify(message));
   }
 
@@ -246,5 +268,39 @@ export default class Bot {
         text: input.value,
       }));
     });
+  }
+
+  createeCategory(key, index) {
+    const item = document.createElement('ul');
+    item.classList.add('shared-media-item');
+    const link = document.createElement('a');
+    link.classList.add('shared-media-item-link');
+    link.href = '#';
+    link.textContent = `${key} ${index}`;
+    item.insertAdjacentElement('afterbegin', link);
+    link.dataset.id = key;
+    return item;
+  }
+
+  renderCategories(obj) {
+    this.categories.innerHTML = '';
+    for (const key in obj) {
+      if (key === 'Messages') {
+        this.categories.insertAdjacentElement('afterbegin', this.createeCategory(key, obj[key]));
+      } else {
+        this.categories.insertAdjacentElement('beforeend', this.createeCategory(key, obj[key]));
+      }
+    }
+  }
+
+  choseCategory(e) {
+    if (e.target.classList.contains('shared-media-item-link')) {
+      this.feed.innerHTML = '';
+      this.feed.addEventListener('wheel', () => false);
+      this.ws.send(JSON.stringify({
+        comand: 'showCategory',
+        data: e.target.dataset.id,
+      }));
+    }
   }
 }
