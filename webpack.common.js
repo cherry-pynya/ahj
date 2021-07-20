@@ -1,23 +1,13 @@
 const path = require('path');
 const HtmlWebPackPlugin = require('html-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
-const NodePolyfillPlugin = require("node-polyfill-webpack-plugin");
 
 module.exports = {
-  target: 'web',
   output: {
     path: path.resolve(__dirname, 'dist'),
-    publicPath: '/',
   },
   module: {
     rules: [
-      {
-        test: /\.(gif|png|jpg|jpeg|svg)?$/,
-        loader: 'file-loader',
-        options: {
-          name: 'assets/img/[name].[ext]',
-        },
-      },
       {
         test: /\.js$/,
         exclude: /node_modules/,
@@ -35,8 +25,17 @@ module.exports = {
       },
       {
         test: /\.css$/,
+        use: [MiniCssExtractPlugin.loader, 'css-loader'],
+      },
+      {
+        test: /\.(png|jpg|gif)$/i,
         use: [
-          MiniCssExtractPlugin.loader, 'css-loader',
+          {
+            loader: 'url-loader',
+            options: {
+              limit: 8192,
+            },
+          },
         ],
       },
     ],
@@ -50,6 +49,5 @@ module.exports = {
       filename: '[name].css',
       chunkFilename: '[id].css',
     }),
-    new NodePolyfillPlugin(),
   ],
 };
