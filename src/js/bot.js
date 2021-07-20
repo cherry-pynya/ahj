@@ -215,6 +215,7 @@ export default class Bot {
   removeTopForm() {
     const form = this.element.querySelector('.bot-window-top-form');
     if (form.classList.contains('search')) {
+      this.feed.innerHTML = '';
       this.sentMessage(JSON.stringify({
         comand: 'refreshFeed',
       }));
